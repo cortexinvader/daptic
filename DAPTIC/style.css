@@ -1,0 +1,221 @@
+body {
+margin: 0;
+padding: 0;
+font-family: 'Segoe UI', sans-serif;
+background: #1e1e1e;
+color: #fff;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 100vh;
+}
+
+.chat-container {
+width: 590%; 
+max-width: 1200px; 
+padding: 20px;
+position: relative;
+}
+
+h1 {
+position: relative;
+text-align: center;
+color: #00ffff;
+margin-bottom: 10px;
+margin-right: 120px; /* Space for button */
+font-size: 2em;
+font-weight: bold;
+letter-spacing: 0.1em;
+text-shadow: none;
+z-index: 2;
+animation: slideAdvance 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+h1::before {
+content: '';
+position: absolute;
+top: 50%;
+left: 50%;
+width: 300px;
+height: 300px;
+background: radial-gradient(circle, rgba(0, 255, 255, 0.3) 0%, rgba(138, 43, 226, 0.1) 70%, transparent 100%);
+transform: translate(-50%, -50%) scale(0.8);
+opacity: 0;
+animation: glowPulse 2s ease-in-out both;
+z-index: 1;
+border-radius: 50%;
+}
+
+@keyframes glowPulse {
+0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(0deg); }
+50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+100% { opacity: 0; transform: translate(-50%, -50%) scale(1.0) rotate(0deg); }
+}
+
+@keyframes slideAdvance {
+0% { transform: translateY(50px) skewX(-10deg); opacity: 0; text-shadow: none; }
+50% { transform: translateY(-10px) skewX(2deg); opacity: 1; text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #8a2be2; }
+100% { transform: translateY(0) skewX(0); opacity: 1; text-shadow: none; }
+}
+
+.chain-icon {
+width: 40px;
+height: 40px;
+margin: 10px auto;
+display: block;
+animation: orbitSpin 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+filter: drop-shadow(0 0 0 #00ffff);
+}
+
+@keyframes orbitSpin {
+0% { transform: rotateY(0deg) rotateX(0deg); opacity: 0; filter: drop-shadow(0 0 0 #00ffff); }
+50% { opacity: 1; filter: drop-shadow(0 0 5px #00ffff); }
+100% { transform: rotateY(360deg) rotateX(180deg); opacity: 1; filter: drop-shadow(0 0 0 #00ffff); }
+}
+
+/* Hover/tap boost for header */
+h1:hover + .chain-icon,
+h1:active + .chain-icon {
+animation: orbitSpin 1s linear;
+filter: drop-shadow(0 0 15px #8a2be2);
+}
+
+.chat-box {
+position: relative;
+background: #737373;
+padding: 20px;
+border-radius: 10px;
+height: 500px;
+overflow-y: auto;
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+background-image: url("D.A.P.T.I.C.jpg");
+background-repeat: no-repeat;
+background-position: center center;
+background-size: 120px;
+opacity: 0.95;
+}
+
+.chat-box::before {
+content: '';
+position: absolute;
+top: 50%;
+left: 50%;
+width: 150px;
+height: 150px;
+background: radial-gradient(circle, rgba(0, 255, 255, 0.4) 0%, rgba(138, 43, 226, 0.2) 50%, transparent 100%);
+transform: translate(-50%, -50%);
+opacity: 0;
+animation: watermarkGlow 2s ease-in-out both;
+z-index: 0;
+pointer-events: none;
+border-radius: 50%;
+}
+
+@keyframes watermarkGlow {
+0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.2); }
+100% { opacity: 0; transform: translate(-50%, -50%) scale(1.0); }
+}
+
+.message {
+position: relative;
+z-index: 1;
+margin-bottom: 20px;
+line-height: 1.5;
+}
+
+.user {
+text-align: right;
+color: #00ffd0;
+}
+
+.bot {
+text-align: left;
+color: #eee;
+}
+
+pre {
+background: #111;
+padding: 10px;
+border-radius: 6px;
+overflow-x: auto;
+white-space: pre-wrap;
+word-break: break-word;
+color: #0f0;
+margin-top: 10px;
+}
+
+.input-group {
+display: flex;
+gap: 10px;
+margin-top: 10px;
+}
+
+textarea {
+flex: 1;
+padding: 12px;
+border-radius: 8px;
+border: none;
+background: #2e2e2e;
+color: #fff;
+font-size: 16px;
+resize: none;
+height: 60px;
+}
+
+button {
+background: #00ffd0;
+padding: 0 20px;
+font-size: 24px;
+color: #000;
+cursor: pointer;
+border: none; /* Remove border /
+border-radius: 0; / Remove rounded corners */
+}
+
+/* New Chat Button Styles */
+.header-actions {
+position: absolute;
+top: 10px;
+right: 20px;
+z-index: 10;
+}
+
+.new-chat-btn {
+background: transparent;
+border: none;
+color: #00ffff;
+padding: 0;
+border-radius: 0;
+font-size: 14px;
+cursor: pointer;
+transition: all 0.2s ease;
+}
+
+.new-chat-btn:hover {
+transform: scale(1.1);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  background: #000;
+}
+
+.container {
+  display: flex;
+  flex-direction: row; /* horizontal layout */
+  justify-content: center;
+  align-items: flex-start;
+  min-width: 1024px;
+}
+@media (max-width: 768px) {
+  .chat-container {
+    width: 390%;
+    max-width: none;
+  }
+  
+  .chat-box {
+    height: 100vh;
+  }
