@@ -1,130 +1,222 @@
-const API_KEY = "AIzaSyAhUIwfut8uqIrVyve_wepLXI4aOA7hKFY"; 
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+/* ==============================================================
+   D.A.P.T.I.C. – Full Front-end Chat Client (Flask + Typing Animation)
+   ============================================================== */
+
+const API = {
+  generate: "/api/generate",
+  history: "/api/history",
+  currentUser: "/api/current_user"
+};
 
 const chatBox = document.getElementById("chatBox");
+const userInput = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
+const clearBtn = document.getElementById("clearBtn");
 
-function sendMessage() {
-  const input = document.getElementById("userInput");
-  if (!input) {
-    console.error('Input element not found!');
-    return;
-  }
-  const userText = input.value.trim().toLowerCase(); // Normalize for keyword matching
-  if (!userText) return;
-  
-  addMessage("user", userText.charAt(0).toUpperCase() + userText.slice(1)); // Capitalize for display
-  input.value = "";
-  getBotResponse(userText.charAt(0).toUpperCase() + userText.slice(1)); // Pass capitalized for API if needed
+// ------------------------------------------------------------------
+// Utility: Safe HTML escaping
+// ------------------------------------------------------------------
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
 
-function addMessage(sender, text) {
-  const msg = document.createElement("div");
-  msg.className = `message ${sender === 'user' ? 'user-message' : 'bot-message'}`;
-  
-  if (sender === "bot" && text.includes("```")) {
-    const parsed = parseCode(text);
-    msg.innerHTML = parsed;
+// ------------------------------------------------------------------
+// Render a single message (user or bot)
+// ------------------------------------------------------------------
+function addMessage({ role, message, created_at }) {
+  const wrapper = document.createElement("div");
+  wrapper.className = `message ${role}-message`;
+  wrapper.dataset.timestamp = created_at || new Date().toISOString();
+
+  if (role === "bot" && /```[\s\S]*```/.test(message)) {
+    wrapper.innerHTML = renderCodeBlocks(message);
   } else {
-    msg.innerText = text;
+    wrapper.innerHTML = `<p>${escapeHtml(message)}</p>`;
   }
-  
-  chatBox.appendChild(msg);
+
+  chatBox.appendChild(wrapper);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function parseCode(text) {
-  return text.replace(/```(\w+)?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+// ------------------------------------------------------------------
+// Render markdown-style code blocks safely
+// ------------------------------------------------------------------
+function renderCodeBlocks(text) {
+  return text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+    const escaped = escapeHtml(code.trim());
+    const language = lang ? `language-${lang}` : "";
+    return `<pre><code class="${language}">${escaped}</code></pre>`;
   });
 }
 
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+// ------------------------------------------------------------------
+// Show typing animation (CSS bouncing dots)
+// ------------------------------------------------------------------
+function showTyping() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "message bot-message typing";
+  wrapper.id = "typingBubble";
 
-async function getBotResponse(prompt) {
-  const lowerPrompt = prompt.toLowerCase();
-  
-  // Custom response for name queries
-  if (lowerPrompt.includes('name') || lowerPrompt.includes('who are you') || lowerPrompt.includes('what is your name')) {
-    const nameResponse = "Am D.A.P.T.I.C meaning David Advance Phantom Technology Intelligence Core. I am an AI chat-bot here to assist you with anything you need, so what's on your mind, do you mind to share";
-    addMessage("bot", nameResponse);
-    return;
-  }
-  
-  // Custom response for creator queries
-  if (lowerPrompt.includes('creator') || lowerPrompt.includes('who made you') || lowerPrompt.includes('who created you')) {
-    const creatorResponse = `Agboola David Ololade, David Advance Phantom Technology Intelligence Core CEO
+  const typing = document.createElement("div");
+  typing.className = "bot-typing";
+  typing.innerHTML = `<span></span><span></span><span></span>`;
 
-Agboola David Ololade is a visionary entrepreneur and tech innovator dedicated to pushing the boundaries of AI and phantom technology. With a passion for creating intelligent companions that advance human potential, he founded D.A.P.T.I.C to bridge the gap between advanced AI and everyday users. His work focuses on ethical AI development, seamless user experiences, and tools that empower creativity and productivity. As CEO, David leads a team committed to making cutting-edge technology accessible and transformative.
-
-He owns several companies including Agbodave Nig Ent, Dylan Graphic, and Vectech, where he drives innovation in tech, graphic design, and enterprise solutions. His notable projects include Chatpals, a conversational AI platform for engaging user interactions, and Skill-Link, a skill-matching tool that connects professionals with opportunities. Through these ventures, David continues to shape the future of AI and digital ecosystems.`;
-    addMessage("bot", creatorResponse);
-    return;
-  }
-   // Custom response for creation queries
-  if (lowerPrompt.includes('creation')|| lowerPrompt.includes('how were you made') || lowerPrompt.includes('how were you created ')){
-    const creationResponse = `I was created by Agboola David Ololade, David Advance Phantom Technology Intelligence Core CEO then was trained by Google and that was how I was made, anything else feel free to ask.`;
-    addMessage("bot", creationResponse);
-    return;
-  }
-  
-  const thinking = document.createElement("div");
-  thinking.className = "message bot-message";
-  thinking.innerText = "Typing...";
-  chatBox.appendChild(thinking);
+  wrapper.appendChild(typing);
+  chatBox.appendChild(wrapper);
   chatBox.scrollTop = chatBox.scrollHeight;
-  
+  return wrapper;
+}
+function hideTyping(bubble) {
+  if (bubble && bubble.parentNode) bubble.remove();
+}
+
+// ------------------------------------------------------------------
+// Load conversation history
+// ------------------------------------------------------------------
+async function loadHistory() {
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    
-    const data = await res.json();
-    const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "❌ No response.";
-    thinking.remove();
-    addMessage("bot", aiText);
+    const res = await fetch(API.history, { credentials: "include" });
+    const { history = [] } = await res.json();
+    chatBox.innerHTML = "";
+    history.forEach(msg => addMessage(msg));
   } catch (err) {
-    thinking.remove();
-    addMessage("bot", "⚠️ Error getting response.");
+    console.error("History load error:", err);
   }
 }
 
-// Fixed: Clear history button/function - Immediate new chat, no confirm
-function clearChatHistory() {
-  if (chatBox) {
-    chatBox.innerHTML = '';
-  }
-  const input = document.getElementById("userInput");
-  if (input) {
-    input.value = '';
-  }
-  console.log('New chat started');
-}
+// ------------------------------------------------------------------
+// Send prompt to backend
+// ------------------------------------------------------------------
+async function sendPrompt(prompt) {
+  if (!prompt.trim()) return;
 
-// Button handlers—event delegation for full-area clicks (handles nested icons/text)
-function setupOptionDelegation() {
-  const textarea = document.getElementById("userInput");
-  const inputGroup = document.querySelector('.input-group');
+  // 1. Add user message
+  addMessage({ role: "user", message: prompt });
 
-  if (!textarea) {
-    console.warn('No textarea found—check ID="userInput"');
-    return;
-  }
+  // 2. Show typing animation
+  const typingBubble = showTyping();
 
-  // Helper to set prompt and focus
-  function setPromptAndFocus(prompt) {
-    textarea.value = prompt;
-    textarea.focus();
-    textarea.setSelectionRange(prompt.length, prompt.length);
-    if (inputGroup) {
-      inputGroup.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  try {
+    const res = await fetch(API.generate, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+
+    // Remove typing bubble
+    hideTyping(typingBubble);
+
+    if (!res.ok) {
+      addMessage({ role: "bot", message: data.error || "Server error" });
+      return;
     }
-    console.log('Prompt set:', prompt);
-  }  
-  }      
+
+    // 3. Simulate typing delay then show real reply
+    const baseDelay = 600;
+    const msPerChar = 10;
+    const randomExtra = Math.random() * 300;
+    const totalDelay = baseDelay + data.reply.length * msPerChar + randomExtra;
+
+    const tempTyping = showTyping(); // show again for final typing
+
+    setTimeout(() => {
+      hideTyping(tempTyping);
+      addMessage({ role: "bot", message: data.reply });
+    }, totalDelay);
+
+  } catch (err) {
+    hideTyping(typingBubble);
+    console.error(err);
+    addMessage({ role: "bot", message: "Network error – please try again." });
+  }
+}
+
+// ------------------------------------------------------------------
+// Clear chat
+// ------------------------------------------------------------------
+function clearChat() {
+  if (!confirm("Start a fresh conversation?")) return;
+  chatBox.innerHTML = "";
+  // Optional: call backend to wipe DB rows
+  // fetch("/api/clear", { method: "POST", credentials: "include" });
+}
+
+// ------------------------------------------------------------------
+// Prompt suggestions
+// ------------------------------------------------------------------
+function setupPromptSuggestions() {
+  const suggestions = [
+    "Tell me about D.A.P.T.I.C.",
+    "Who created you?",
+    "Write a Python function to reverse a string.",
+    "Explain quantum computing simply."
+  ];
+
+  const container = document.createElement("div");
+  container.className = "suggestions";
+
+  suggestions.forEach(txt => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = txt;
+    btn.onclick = () => {
+      userInput.value = txt;
+      userInput.focus();
+    };
+    container.appendChild(btn);
+  });
+
+  const inputGroup = document.querySelector(".input-group");
+  if (inputGroup) inputGroup.before(container);
+}
+
+// ------------------------------------------------------------------
+// Event Listeners
+// ------------------------------------------------------------------
+function init() {
+  // Send button
+  if (sendBtn) {
+    sendBtn.addEventListener("click", () => {
+      const text = userInput.value.trim();
+      if (text) {
+        sendPrompt(text);
+        userInput.value = "";
+      }
+    });
+  }
+
+  // Enter key (Shift+Enter = newline)
+  if (userInput) {
+    userInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const text = userInput.value.trim();
+        if (text) {
+          sendPrompt(text);
+          userInput.value = "";
+        }
+      }
+    });
+  }
+
+  // Clear button
+  if (clearBtn) clearBtn.addEventListener("click", clearChat);
+
+  // Load history & suggestions
+  loadHistory();
+  setupPromptSuggestions();
+}
+
+// ------------------------------------------------------------------
+// Start on DOM ready
+// ------------------------------------------------------------------
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
